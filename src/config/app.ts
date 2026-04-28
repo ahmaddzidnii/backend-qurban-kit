@@ -3,52 +3,56 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import { UserRepository, TokenRepository } from "../infrastructure/repositories/index.js";
-import { PasswordService, TokenService } from "../infrastructure/services/index.js";
-import { RegisterUseCase, LoginUseCase } from "../application/use-cases/auth/index.js";
-import { AuthController } from "../presentation/controllers/index.js";
-import { AuthMiddleware, ErrorHandlingMiddleware } from "../presentation/middleware/index.js";
-import { createAuthRoutes, createApiRoutes } from "../presentation/routes/index.js";
+import { AuthService } from "../features/auth/services.js";
+import { AuthController } from "../features/auth/controllers.js";
+import { createAuthRoutes } from "../features/auth/routes.js";
+import { AuthMiddleware } from "../shared/middleware/index.js";
+import { ErrorHandlingMiddleware } from "../shared/middleware/index.js";
+import { formatUptime } from "../shared/utils/index.js";
+import { Router as ExpressRouter } from "express";
 
 export function createApp(): Express {
   const app = express();
 
-  // Setup middleware
   app.use(morgan("dev"));
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
 
-  // Initialize repositories
-  const userRepository = new UserRepository();
+  // Initialize auth service (consolidates all auth repositories, services, and use cases)
+  const authService = new AuthService();
 
-  // Initialize services first (needed by repositories)
-  const passwordService = new PasswordService();
-  const tokenService = new TokenService();
-
-  // Initialize token repository with token service
-  const tokenRepository = new TokenRepository(tokenService);
-
-  // Initialize use cases
-  const registerUseCase = new RegisterUseCase(userRepository, tokenRepository, tokenService, passwordService);
-  const loginUseCase = new LoginUseCase(userRepository, tokenRepository, tokenService, passwordService);
-
-  // Initialize controllers
-  const authController = new AuthController(registerUseCase, loginUseCase);
+  // Initialize controller
+  const authController = new AuthController(authService);
 
   // Initialize middleware
-  const authMiddleware = new AuthMiddleware(tokenService, tokenRepository);
+  const authMiddleware = new AuthMiddleware(
+    authService.getTokenService(),
+    authService.getTokenRepository()
+  );
 
   // Apply authentication middleware globally
-  app.use(authMiddleware.authenticate);
+  app.use((req, res, next) => authMiddleware.authenticate(req, res, next));
 
-  // Setup routes
+  // Setup API routes
+  const apiRouter = ExpressRouter();
+
+  // Health check endpoint
+  apiRouter.get("/", (req, res) => {
+    return res.json({
+      name: "Qurban Kit Backend API",
+      status: "HEALTHY",
+      sysdate: new Date().toISOString(),
+      uptime: formatUptime(process.uptime()),
+    });
+  });
+
+  // Auth routes
   const authRoutes = createAuthRoutes(authController, authMiddleware);
-  const apiRoutes = createApiRoutes(authRoutes);
+  apiRouter.use("/auth", authRoutes);
 
-  app.use("/", apiRoutes);
+  app.use("/", apiRouter);
 
-  // Error handling (must be last)
   app.use(ErrorHandlingMiddleware.notFound);
   app.use(ErrorHandlingMiddleware.errorHandler);
 

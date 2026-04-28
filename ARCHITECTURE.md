@@ -1,104 +1,239 @@
-# Clean Architecture Guide
+# Feature-Based Architecture Guide
 
-This project has been refactored to follow **Clean Architecture** principles. This guide explains the structure and how to work with it.
+This project uses a **Feature-Based Architecture**, which is simpler and more maintainable than Clean Architecture. Each feature (auth, user, etc.) contains all related code in one place.
 
 ## Project Structure
 
 ```
 src/
-├── domain/                      # Enterprise Business Rules (Entities & Errors)
-│   ├── entities/               # Core business entities
-│   │   └── User.ts            # User entity interface
-│   └── errors/                # Domain-specific error classes
-│       └── DomainError.ts      # Custom error hierarchy
+├── features/                    # Feature modules
+│   ├── auth/                   # Authentication feature
+│   │   ├── models.ts          # Types, DTOs, interfaces
+│   │   ├── services.ts        # Business logic (consolidated)
+│   │   ├── controllers.ts     # Request handlers
+│   │   └── routes.ts          # Route definitions
+│   ├── user/                  # User management feature (expandable)
+│   │   ├── models.ts
+│   │   ├── services.ts
+│   │   ├── controllers.ts
+│   │   └── routes.ts
+│   └── (future features)
 │
-├── application/                # Application Business Rules (Use Cases)
-│   ├── use-cases/             # Business logic orchestration
-│   │   ├── auth/
-│   │   │   ├── RegisterUseCase.ts
-│   │   │   ├── LoginUseCase.ts
-│   │   │   ├── RefreshTokenUseCase.ts
-│   │   │   ├── LogoutUseCase.ts
-│   │   │   └── index.ts
-│   │   └── (other use cases)
-│   ├── dto/                   # Data Transfer Objects
-│   │   └── AuthDTO.ts
-│   └── interfaces/            # Repository & Service abstractions
-│       ├── IUserRepository.ts
-│       ├── ITokenService.ts
-│       └── IPasswordService.ts
-│
-├── infrastructure/            # External dependencies & frameworks
-│   ├── repositories/         # Database implementations
-│   │   ├── UserRepository.ts
-│   │   ├── RefreshTokenRepository.ts
-│   │   └── index.ts
-│   └── services/            # External service implementations
-│       ├── TokenService.ts
-│       ├── PasswordService.ts
-│       └── index.ts
-│
-├── presentation/             # Controllers, Routes, Middleware, Views
-│   ├── controllers/          # Request handlers
-│   │   ├── AuthController.ts
-│   │   └── index.ts
-│   ├── routes/              # Route definitions
-│   │   ├── AuthRoutes.ts
-│   │   ├── ApiRoutes.ts
-│   │   └── index.ts
-│   ├── middleware/          # Express middlewares
-│   │   ├── AuthMiddleware.ts
+├── shared/                     # Shared utilities across features
+│   ├── middleware/            # Express middlewares
+│   │   ├── AuthMiddleware.ts  # Authentication & token validation
 │   │   ├── ErrorHandlingMiddleware.ts
 │   │   └── index.ts
-│   └── validators/          # Request validation schemas
-│       └── AuthValidator.ts
+│   ├── utils/                 # Utility functions
+│   │   ├── asyncHandler.ts    # Async error handling wrapper
+│   │   ├── formatUptime.ts    # Time formatting
+│   │   └── index.ts
+│   ├── errors/                # Custom error classes
+│   │   └── index.ts           # All error definitions
+│   └── interfaces/            # Shared types & interfaces
+│       └── index.ts
 │
-├── config/                  # Configuration & Dependency Injection
-│   ├── app.ts              # App factory function
-│   ├── database.ts         # Database setup
+├── config/                    # Configuration & Setup
+│   ├── app.ts                # Express app setup & initialization
+│   ├── database.ts           # Prisma database client
 │   └── index.ts
 │
-├── utils/                   # Utility functions
-│   ├── asyncHandler.ts     # Async error handling wrapper
-│   └── index.ts
-│
-├── interfaces/              # Shared response interfaces
-│   ├── error-response.ts
-│   └── message-response.ts
-│
-├── app.ts                   # (Old file - can be removed)
-├── env.ts                   # Environment configuration
-├── index.ts                 # Entry point
-└── middlewares.ts          # (Old file - can be removed)
+├── env.ts                    # Environment variables
+└── index.ts                  # Entry point
 ```
 
-## Architecture Layers Explanation
+## Why Feature-Based?
 
-### 1. **Domain Layer** (`domain/`)
-- Contains core business rules and entities
-- Independent of any framework or external library
-- Defines error classes for domain-specific exceptions
-- No dependencies on other layers
+### Advantages:
 
-**Example:**
+1. **Simplicity** - Less boilerplate and easier to understand
+2. **Locality** - All code related to a feature is in one place
+3. **Maintainability** - Easy to find and modify feature-related code
+4. **Scalability** - Simple to add new features as separate modules
+5. **Reduced Complexity** - No need for multiple abstraction layers
+
+### vs Clean Architecture:
+
+- ❌ Clean Architecture has: domain → application → infrastructure → presentation (4 layers)
+- ✅ Feature-Based has: features (models, services, controllers, routes) + shared utilities
+
+## Feature Structure
+
+### Authentication Feature (`src/features/auth/`)
+
+**models.ts** - Type definitions and DTOs
+
 ```typescript
-// domain/entities/User.ts
-export interface User {
-  id: string;
+export interface RegisterRequestDTO {
   email: string;
   password: string;
   name?: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
+```
 
-// domain/errors/DomainError.ts
-export class InvalidCredentialsError extends DomainError {
-  constructor() {
-    super("INVALID_CREDENTIALS", "Invalid email or password", 401);
+**services.ts** - All business logic consolidated
+
+```typescript
+export class AuthService {
+  // Consolidates:
+  // - PasswordService (password hashing)
+  // - TokenService (token generation & validation)
+  // - UserRepository (database operations)
+  // - TokenRepository (token storage)
+  // - RegisterUseCase, LoginUseCase, ProfileUseCase logic
+}
+```
+
+**controllers.ts** - Request handlers
+
+```typescript
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  async register(req, res) { ... }
+  async login(req, res) { ... }
+  async profile(req, res) { ... }
+}
+```
+
+**routes.ts** - Route definitions
+
+```typescript
+export function createAuthRoutes(
+  authController: AuthController,
+  authMiddleware?: AuthMiddleware
+): Router {
+  // Define all auth routes
+}
+```
+
+## Adding a New Feature
+
+### Step 1: Create feature directory
+
+```bash
+mkdir src/features/newfeature
+```
+
+### Step 2: Create feature files
+
+```
+src/features/newfeature/
+├── models.ts       # Types & interfaces
+├── services.ts     # Business logic
+├── controllers.ts  # Request handlers
+└── routes.ts       # Route definitions
+```
+
+### Step 3: Update `src/config/app.ts`
+
+```typescript
+// Import the new feature
+import { NewFeatureService } from '../features/newfeature/services.js';
+import { NewFeatureController } from '../features/newfeature/controllers.js';
+import { createNewFeatureRoutes } from '../features/newfeature/routes.js';
+
+// Initialize service and controller
+const newFeatureService = new NewFeatureService();
+const newFeatureController = new NewFeatureController(newFeatureService);
+
+// Add routes to API router
+apiRouter.use('/newfeature', createNewFeatureRoutes(newFeatureController));
+```
+
+## Code Organization Tips
+
+### 1. Keep services focused
+
+- Consolidate related repositories and services into one
+- Example: `AuthService` handles all auth-related database and business logic
+
+### 2. Use constructor injection
+
+```typescript
+export class AuthController {
+  constructor(private authService: AuthService) {}
+}
+```
+
+### 3. Keep routes clean
+
+```typescript
+export function createAuthRoutes(
+  authController: AuthController,
+  authMiddleware?: AuthMiddleware
+): Router {
+  const router = ExpressRouter();
+
+  router.post(
+    '/register',
+    asyncHandler((req, res) => authController.register(req, res))
+  );
+
+  return router;
+}
+```
+
+### 4. Use shared utilities
+
+```typescript
+// For error handling
+export const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// For middleware
+export class AuthMiddleware {
+  async authenticate(req, res, next) { ... }
+  requireAuth(req, res, next) { ... }
+}
+```
+
+## Database Setup
+
+Uses **Prisma ORM** with **MariaDB**:
+
+- `src/config/database.ts` - Prisma client configuration
+- `prisma/schema.prisma` - Data model definitions
+- `prisma/migrations/` - Database migrations
+
+## Error Handling
+
+Custom error classes in `src/shared/errors/index.ts`:
+
+```typescript
+export class UserAlreadyExistsError extends AppError {
+  constructor(email: string) {
+    super('USER_ALREADY_EXISTS', `User with email ${email} already exists`, 409);
   }
 }
 ```
+
+Errors are automatically caught by `ErrorHandlingMiddleware` and returned as JSON responses.
+
+## Project Simplification
+
+This feature-based architecture removes unnecessary abstraction layers:
+
+✅ **Removed:**
+
+- `src/application/` - Use cases consolidated into feature services
+- `src/infrastructure/` - Repositories consolidated into feature services
+- `src/presentation/` - Controllers moved into features
+- `src/domain/` - Error classes moved to shared utilities
+
+✅ **Result:**
+
+- Cleaner project structure
+- Easier to understand and maintain
+- Less cognitive load (no 4-layer abstraction)
+- Faster to add new features
+
+2. Add new features using the template above
+
+3. Consider splitting large services into separate concerns if needed
+
+````
 
 ### 2. **Application Layer** (`application/`)
 - Contains use cases (business logic orchestration)
@@ -119,15 +254,17 @@ export class LoginUseCase {
     // Business logic here
   }
 }
-```
+````
 
 ### 3. **Infrastructure Layer** (`infrastructure/`)
+
 - Implements repository and service interfaces
 - Handles external dependencies (database, authentication services, etc.)
 - Depends on application and domain layers
 - Easily replaceable (e.g., swap Prisma with TypeORM)
 
 **Example:**
+
 ```typescript
 // infrastructure/repositories/UserRepository.ts
 export class UserRepository implements IUserRepository {
@@ -145,18 +282,21 @@ export class TokenService implements ITokenService {
 ```
 
 ### 4. **Presentation Layer** (`presentation/`)
+
 - Handles HTTP requests and responses
 - Contains controllers, routes, and middleware
 - Validates incoming requests
 - Depends on application layer
 
 **Components:**
+
 - **Controllers**: Handle requests and delegate to use cases
 - **Routes**: Define API endpoints
 - **Middleware**: Handle authentication, error handling, logging
 - **Validators**: Validate request data using Zod schemas
 
 **Example:**
+
 ```typescript
 // presentation/controllers/AuthController.ts
 export class AuthController {
@@ -169,30 +309,32 @@ export class AuthController {
 ```
 
 ### 5. **Config Layer** (`config/`)
+
 - Dependency injection setup
 - Application factory function
 - Configuration management
 - Database initialization
 
 **Example:**
+
 ```typescript
 // config/app.ts
 export function createApp(): Express {
   // Initialize repositories
   const userRepository = new UserRepository();
-  
+
   // Initialize services
   const tokenService = new TokenService();
-  
+
   // Initialize use cases
   const loginUseCase = new LoginUseCase(userRepository, tokenService);
-  
+
   // Initialize controllers
   const authController = new AuthController(loginUseCase);
-  
+
   // Setup app and routes
   const app = express();
-  app.use("/auth", createAuthRoutes(authController));
+  app.use('/auth', createAuthRoutes(authController));
   return app;
 }
 ```
@@ -221,12 +363,13 @@ The application uses **constructor injection** for managing dependencies:
 export class LoginUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private tokenService: ITokenService,
+    private tokenService: ITokenService
   ) {}
 }
 ```
 
 Dependencies are created in `config/app.ts`:
+
 ```typescript
 const userRepository = new UserRepository();
 const tokenService = new TokenService();
@@ -243,14 +386,14 @@ export class DomainError extends Error {
   constructor(
     public readonly code: string,
     message: string,
-    public readonly statusCode: number = 400,
+    public readonly statusCode: number = 400
   ) {}
 }
 
 // Middleware catches and formats errors
 export class ErrorHandlingMiddleware {
   static errorHandler(err: Error | DomainError, req, res, next) {
-    const statusCode = ("statusCode" in err) ? err.statusCode : 500;
+    const statusCode = 'statusCode' in err ? err.statusCode : 500;
     res.status(statusCode).json({ message: err.message, code: err.code });
   }
 }
@@ -277,6 +420,7 @@ await controller.register(mockRequest, mockResponse);
 ## Adding New Features
 
 ### 1. Create Domain Entity
+
 ```typescript
 // domain/entities/Product.ts
 export interface Product {
@@ -287,12 +431,14 @@ export interface Product {
 ```
 
 ### 2. Create Domain Errors (if needed)
+
 ```typescript
 // domain/errors/ProductError.ts
 export class ProductNotFoundError extends DomainError {}
 ```
 
 ### 3. Create Application Interfaces
+
 ```typescript
 // application/interfaces/IProductRepository.ts
 export interface IProductRepository {
@@ -302,6 +448,7 @@ export interface IProductRepository {
 ```
 
 ### 4. Create Use Cases
+
 ```typescript
 // application/use-cases/product/CreateProductUseCase.ts
 export class CreateProductUseCase {
@@ -313,6 +460,7 @@ export class CreateProductUseCase {
 ```
 
 ### 5. Create Repository Implementation
+
 ```typescript
 // infrastructure/repositories/ProductRepository.ts
 export class ProductRepository implements IProductRepository {
@@ -323,6 +471,7 @@ export class ProductRepository implements IProductRepository {
 ```
 
 ### 6. Create Controller
+
 ```typescript
 // presentation/controllers/ProductController.ts
 export class ProductController {
@@ -335,13 +484,14 @@ export class ProductController {
 ```
 
 ### 7. Register in App Config
+
 ```typescript
 // config/app.ts
 const productRepository = new ProductRepository();
 const createProductUseCase = new CreateProductUseCase(productRepository);
 const productController = new ProductController(createProductUseCase);
 const productRoutes = createProductRoutes(productController);
-app.use("/api/products", productRoutes);
+app.use('/api/products', productRoutes);
 ```
 
 ## Benefits of Clean Architecture
@@ -356,6 +506,7 @@ app.use("/api/products", productRoutes);
 ## Migration Notes
 
 Old files that can be removed:
+
 - `src/app.ts` - Now `src/config/app.ts`
 - `src/middlewares.ts` - Now `src/presentation/middleware/`
 - `src/api/` - Now `src/presentation/routes/` and `src/presentation/controllers/`
