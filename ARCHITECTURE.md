@@ -6,10 +6,16 @@ This project uses a **Feature-Based Architecture**, which is simpler and more ma
 
 ```
 src/
+├── repositories/               # Data Access Layer (Repository Pattern)
+│   ├── base.repository.ts     # Base interface & abstract class
+│   ├── user.repository.ts     # User database operations
+│   ├── token.repository.ts    # Token database operations
+│   └── index.ts               # Export all repositories
+│
 ├── features/                    # Feature modules
 │   ├── auth/                   # Authentication feature
 │   │   ├── models.ts          # Types, DTOs, interfaces
-│   │   ├── services.ts        # Business logic (consolidated)
+│   │   ├── services.ts        # Business logic (uses repositories & services)
 │   │   ├── controllers.ts     # Request handlers
 │   │   └── routes.ts          # Route definitions
 │   ├── user/                  # User management feature (expandable)
@@ -20,6 +26,10 @@ src/
 │   └── (future features)
 │
 ├── shared/                     # Shared utilities across features
+│   ├── services/              # Utility services (no business logic)
+│   │   ├── password.service.ts # Password hashing & validation
+│   │   ├── token.service.ts    # Token generation & validation
+│   │   └── index.ts
 │   ├── middleware/            # Express middlewares
 │   │   ├── AuthMiddleware.ts  # Authentication & token validation
 │   │   ├── ErrorHandlingMiddleware.ts
@@ -56,6 +66,123 @@ src/
 
 - ❌ Clean Architecture has: domain → application → infrastructure → presentation (4 layers)
 - ✅ Feature-Based has: features (models, services, controllers, routes) + shared utilities
+
+## Repository Pattern & Data Access Layer
+
+### Why Separate Repositories?
+
+This project implements the **Repository Pattern** to separate data access logic from business logic:
+
+1. **Single Responsibility** - Repositories only handle database operations
+2. **Reusability** - Services can be tested independently of database
+3. **Maintainability** - Database changes don't affect business logic
+4. **Testability** - Easy to mock repositories for unit tests
+
+### Layer Breakdown
+
+```
+┌─────────────────────────────────┐
+│      Controllers (HTTP)         │
+│  Handle requests & responses    │
+├─────────────────────────────────┤
+│   Services (Business Logic)     │
+│  Orchestrate repositories &    │
+│  utility services              │
+├─────────────────────────────────┤
+│   Repositories (Data Access)    │
+│  Direct Prisma queries only    │
+├─────────────────────────────────┤
+│  Utility Services              │
+│  (Password, Token - no I/O)    │
+├─────────────────────────────────┤
+│    Database (Prisma)           │
+│      & External APIs           │
+└─────────────────────────────────┘
+```
+
+### Repository Structure
+
+**base.repository.ts** - Interface & abstract class
+
+```typescript
+export interface IRepository<T> {
+  findById(id: string): Promise<T | null>;
+  create(data: Partial<T>): Promise<T>;
+  update(id: string, data: Partial<T>): Promise<T>;
+  delete(id: string): Promise<void>;
+  findAll(): Promise<T[]>;
+}
+```
+
+**user.repository.ts** - User-specific operations
+
+```typescript
+export class UserRepository extends BaseRepository<User> {
+  async findByEmail(email: string): Promise<User | null> {
+    return await prisma.user.findUnique({ where: { email } });
+  }
+  // Only Prisma calls, no business logic
+}
+```
+
+**token.repository.ts** - Token-specific operations
+
+```typescript
+export class TokenRepository extends BaseRepository<Token> {
+  async findByToken(token: string): Promise<Token | null> {
+    const hashedToken = this.tokenService.hashToken(token);
+    return await prisma.userToken.findUnique({ where: { token: hashedToken } });
+  }
+  // Only Prisma calls, no business logic
+}
+```
+
+### Services Using Repositories
+
+```typescript
+export class AuthService {
+  private userRepository: UserRepository;
+  private tokenRepository: TokenRepository;
+  private passwordService: PasswordService;
+  private tokenService: TokenService;
+
+  async register(data: RegisterRequestDTO) {
+    // Business logic: Check, validate, hash, save
+    const existingUser = await this.userRepository.findByEmail(data.email);
+    if (existingUser) throw new UserAlreadyExistsError();
+
+    const hashedPassword = await this.passwordService.hash(data.password);
+    return await this.userRepository.create({
+      email: data.email,
+      password: hashedPassword,
+    });
+  }
+  // Only orchestrates repositories & services
+}
+```
+
+### Utility Services (Shared)
+
+These are **pure functions** with no database I/O:
+
+**password.service.ts**
+
+```typescript
+export class PasswordService {
+  async hash(password: string): Promise<string> {}
+  async compare(password: string, hash: string): Promise<boolean> {}
+}
+```
+
+**token.service.ts**
+
+```typescript
+export class TokenService {
+  generateAccessToken(): string {}
+  verifyAccessToken(token: string): boolean {}
+  hashToken(token: string): string {}
+}
+```
 
 ## Feature Structure
 

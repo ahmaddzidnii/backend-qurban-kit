@@ -18,6 +18,13 @@ export function createAuthRoutes(
         "/login",
         asyncHandler((req: Request, res: Response) => authController.login(req as AuthenticatedRequest, res))
     );
+    router.post(
+        "/logout",
+        authMiddleware
+            ? (req: Request, res: Response, next: NextFunction) => authMiddleware.requireAuth(req as AuthenticatedRequest, res, next)
+            : (req: Request, res: Response, next: NextFunction) => next(),
+        asyncHandler((req: Request, res: Response) => authController.logout(req as AuthenticatedRequest, res))
+    );
     router.get(
         "/profile",
         authMiddleware

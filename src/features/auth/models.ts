@@ -1,4 +1,11 @@
-// Auth DTOs and Types
+// Import Prisma types as single source of truth
+import type { User as PrismaUser, UserToken as PrismaUserToken } from "../../../generated/prisma/client";
+import type { Role } from "../../../generated/prisma/enums";
+
+// ============================================
+// DTOs (Request/Response)
+// ============================================
+
 export interface RegisterRequestDTO {
     email: string;
     password: string;
@@ -19,20 +26,11 @@ export interface AuthResponseDTO {
     accessToken: string;
 }
 
-export interface User {
-    id: string;
-    email: string;
-    password: string;
-    fullName: string;
-    createdAt: Date;
-    updatedAt: Date;
-}
+// ============================================
+// Database Models (from Prisma - Single Source of Truth)
+// ============================================
 
-export interface Token {
-    id: string;
-    token: string;
-    userId: string;
-    expiresAt: Date;
-    createdAt: Date;
-    updatedAt: Date;
-}
+// Re-export Prisma types for use throughout the app
+export type User = PrismaUser;
+export type Token = PrismaUserToken;
+export type { Role };

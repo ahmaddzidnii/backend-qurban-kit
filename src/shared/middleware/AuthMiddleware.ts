@@ -3,7 +3,7 @@ import { InvalidTokenError } from "../errors/index.js";
 
 export interface AuthenticatedRequest extends Request {
     userId?: string;
-    email?: string;
+    token?: string;
 }
 
 export interface ITokenService {
@@ -12,7 +12,7 @@ export interface ITokenService {
 }
 
 export interface ITokenRepository {
-    findByToken(token: string): Promise<{ expiresAt: Date; userId: string } | null>;
+    findByHashedToken(hashedToken: string): Promise<{ expiresAt: Date; userId: string } | null>;
 }
 
 export class AuthMiddleware {
@@ -35,8 +35,11 @@ export class AuthMiddleware {
             return next();
         }
 
+        // Hash token for lookup
+        const hashedToken = this.tokenService.hashToken(token);
+
         // Lookup token in database
-        const tokenRecord = await this.tokenRepository.findByToken(token);
+        const tokenRecord = await this.tokenRepository.findByHashedToken(hashedToken);
         if (!tokenRecord) {
             return next();
         }
@@ -48,6 +51,9 @@ export class AuthMiddleware {
 
         // Token is valid, set userId in request
         req.userId = tokenRecord.userId;
+        req.token = token;
+
+        console.log(token)
         next();
     }
 

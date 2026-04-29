@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { AuthService } from "./services.js";
 import type { AuthenticatedRequest } from "../../shared/middleware/index.js";
 
-// Validation schemas
 const registerSchema = z.object({
     email: z.email("Invalid email format"),
     password: z.string().min(6, "Password must be at least 6 characters"),
@@ -14,35 +13,6 @@ const loginSchema = z.object({
     email: z.email("Invalid email format"),
     password: z.string().min(1, "Password is required"),
 });
-
-type AuthResponse =
-    | {
-        id: string;
-        email: string;
-        password?: undefined;
-        fullName: string;
-        createdAt: Date;
-        updatedAt: Date;
-    }
-    | {
-        user: {
-            id: string;
-            email: string;
-            fullName: string;
-        };
-        accessToken: string;
-    }
-    | {
-        message?: string;
-        code?: string;
-        errors?: Record<string, string[]>;
-    }
-    | {
-        name: string;
-        email: string;
-        phone: string;
-        address: string;
-    };
 
 export class AuthController {
     constructor(private authService: AuthService) { }
@@ -73,7 +43,7 @@ export class AuthController {
         }
     }
 
-    async login(req: AuthenticatedRequest, res: Response<AuthResponse>) {
+    async login(req: AuthenticatedRequest, res: Response) {
         try {
             const data = loginSchema.parse(req.body);
             const result = await this.authService.login(data);
@@ -101,8 +71,20 @@ export class AuthController {
 
     async profile(req: AuthenticatedRequest, res: Response) {
         try {
-            const result = await this.authService.getProfile();
+            const result = await this.authService.getProfile(req.userId);
             res.status(200).json(result);
+        } catch (error) {
+            if (error instanceof Error) {
+                throw error;
+            }
+        }
+    }
+
+    async logout(req: AuthenticatedRequest, res: Response) {
+        try {
+
+            await this.authService.logout(req.token!);
+            res.status(200).json({ message: "Logged out successfully" });
         } catch (error) {
             if (error instanceof Error) {
                 throw error;

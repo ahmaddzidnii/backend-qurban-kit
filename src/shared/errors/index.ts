@@ -1,8 +1,3 @@
-/**
- * Custom Error Classes for Application
- * Used across features for consistent error handling
- */
-
 export abstract class AppError extends Error {
     constructor(
         public readonly code: string,
