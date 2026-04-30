@@ -1,14 +1,22 @@
+import { config as loadEnv } from "dotenv";
 import { z } from "zod/v4";
+
+const dotenvResult = loadEnv();
+// eslint-disable-next-line node/no-process-env
+const envSource = dotenvResult.error ? "process env" : (process.env.DOTENV_CONFIG_PATH ?? ".env");
+// eslint-disable-next-line node/no-process-env
+const rawEnv = { ...process.env, ENV_SOURCE: envSource };
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  ENV_SOURCE: z.string().default("process env"),
 });
 
 try {
   // eslint-disable-next-line node/no-process-env
-  envSchema.parse(process.env);
+  envSchema.parse(rawEnv);
 }
 catch (error) {
   if (error instanceof z.ZodError) {
@@ -21,4 +29,4 @@ catch (error) {
 }
 
 // eslint-disable-next-line node/no-process-env
-export const env = envSchema.parse(process.env);
+export const env = envSchema.parse(rawEnv);
