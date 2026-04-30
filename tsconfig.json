@@ -6,13 +6,13 @@
     "strict": true,
     "noImplicitAny": true,
     "outDir": "dist",
-    "sourceMap": true,
+    "sourceMap": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "netlify/**/*.ts"]
 }

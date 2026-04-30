@@ -1,7 +1,7 @@
 import { createApp } from "./config/app.js";
 import { env } from "./env.js";
 
-const app = createApp();
+export const app = createApp();
 const port = env.PORT;
 
 const color = {

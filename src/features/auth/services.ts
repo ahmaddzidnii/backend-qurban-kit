@@ -84,11 +84,6 @@ export class AuthService {
         } as any);
 
         return {
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-            },
             accessToken,
         };
     }

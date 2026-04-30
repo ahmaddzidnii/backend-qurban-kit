@@ -76,3 +76,6 @@ dist
 /src/generated/prisma
 
 /generated/prisma
+
+# Local Netlify folder
+.netlify

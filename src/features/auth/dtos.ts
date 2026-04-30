@@ -15,10 +15,5 @@ export interface LoginRequestDTO {
 }
 
 export interface AuthResponseDTO {
-    user: {
-        id: string;
-        email: string;
-        fullName: string;
-    };
     accessToken: string;
 }

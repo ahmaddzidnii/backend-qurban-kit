@@ -11,31 +11,51 @@ export abstract class AppError extends Error {
 
 export class UserAlreadyExistsError extends AppError {
     constructor(email: string) {
-        super("USER_ALREADY_EXISTS", `User with email ${email} already exists`, 409);
+        super(
+            "USER_ALREADY_EXISTS",
+            `We already have an account registered with ${email}. Please sign in or use a different email.`,
+            409,
+        );
     }
 }
 
 export class InvalidCredentialsError extends AppError {
     constructor() {
-        super("INVALID_CREDENTIALS", "Invalid email or password", 401);
+        super(
+            "INVALID_CREDENTIALS",
+            "We couldn't sign you in with those credentials. Please check your email and password and try again.",
+            401,
+        );
     }
 }
 
 export class TokenExpiredError extends AppError {
     constructor() {
-        super("TOKEN_EXPIRED", "Token has expired", 401);
+        super(
+            "TOKEN_EXPIRED",
+            "Your session has expired. Please sign in again to continue.",
+            401,
+        );
     }
 }
 
 export class InvalidTokenError extends AppError {
     constructor() {
-        super("INVALID_TOKEN", "Invalid token", 401);
+        super(
+            "INVALID_TOKEN",
+            "Your session token is invalid. Please sign in again to continue.",
+            401,
+        );
     }
 }
 
 export class UserNotFoundError extends AppError {
     constructor() {
-        super("USER_NOT_FOUND", "User not found", 404);
+        super(
+            "USER_NOT_FOUND",
+            "We couldn't find a user with those details. Please check and try again.",
+            404,
+        );
     }
 }
 
@@ -44,12 +64,20 @@ export class ValidationError extends AppError {
         message: string,
         public readonly errors?: Record<string, string[]>,
     ) {
-        super("VALIDATION_ERROR", message, 400);
+        super(
+            "VALIDATION_ERROR",
+            message || "Some of the provided details are invalid. Please review and try again.",
+            400,
+        );
     }
 }
 
 export class NotFoundError extends AppError {
     constructor(message: string = "Resource not found") {
-        super("NOT_FOUND", message, 404);
+        super(
+            "NOT_FOUND",
+            message || "We couldn't find what you were looking for.",
+            404,
+        );
     }
 }
