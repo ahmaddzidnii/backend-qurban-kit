@@ -1,7 +1,8 @@
-import type { Prisma as PrismaNamespace } from "../../generated/prisma/client.js";
+import { Role } from "@prisma/client";
+import type { Prisma as PrismaNamespace } from "@prisma/client";
+
 import { prisma } from "../config/database.js";
 import { BaseRepository } from "./base.repository.js";
-import { Role } from "../../generated/prisma/enums.js";
 
 type User = PrismaNamespace.UserGetPayload<{}>;
 

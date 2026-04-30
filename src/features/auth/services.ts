@@ -1,5 +1,5 @@
 import type { RegisterRequestDTO, LoginRequestDTO, AuthResponseDTO } from "./dtos.js";
-import type { Prisma as PrismaNamespace } from "../../../generated/prisma/client.js";
+import type { Prisma as PrismaNamespace } from "@prisma/client";
 import {
     UserAlreadyExistsError,
     InvalidCredentialsError,

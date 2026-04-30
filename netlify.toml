@@ -2,7 +2,12 @@
   command = "npm run build"
   functions = "dist/netlify/functions"
 
+[functions]
+  included_files = [
+    "node_modules/.prisma/client/**"
+  ]
+
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api"
+  from = "/*"
+  to = "/.netlify/functions/api/:splat"
   status = 200
