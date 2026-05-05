@@ -1,2 +1,2 @@
-export { AuthMiddleware, type AuthenticatedRequest, type ITokenService, type ITokenRepository } from "./AuthMiddleware.js";
-export { ErrorHandlingMiddleware } from "./ErrorHandlingMiddleware.js";
+export { authenticate, requireAuth, type AuthenticatedRequest } from "./AuthMiddleware.js";
+export { notFound, errorHandler } from "./ErrorHandlingMiddleware.js";

@@ -1,21 +1,15 @@
 import bcrypt from "bcryptjs";
 
 /**
- * Password Service - Handles password hashing and validation
- * Only deals with password operations, no business logic
+ * Hash a password using bcrypt
  */
-export class PasswordService {
-    /**
-     * Hash a password using bcrypt
-     */
-    async hash(password: string): Promise<string> {
-        return await bcrypt.hash(password, 10);
-    }
+export async function hashPassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 10);
+}
 
-    /**
-     * Compare a password with a hashed password
-     */
-    async compare(password: string, hashedPassword: string): Promise<boolean> {
-        return await bcrypt.compare(password, hashedPassword);
-    }
+/**
+ * Compare a password with a hashed password
+ */
+export async function comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+    return await bcrypt.compare(password, hashedPassword);
 }

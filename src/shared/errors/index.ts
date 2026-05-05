@@ -59,25 +59,32 @@ export class UserNotFoundError extends AppError {
     }
 }
 
-export class ValidationError extends AppError {
-    constructor(
-        message: string,
-        public readonly errors?: Record<string, string[]>,
-    ) {
-        super(
-            "VALIDATION_ERROR",
-            message || "Some of the provided details are invalid. Please review and try again.",
-            400,
-        );
-    }
-}
-
 export class NotFoundError extends AppError {
     constructor(message: string = "Resource not found") {
         super(
             "NOT_FOUND",
             message || "We couldn't find what you were looking for.",
             404,
+        );
+    }
+}
+
+export class MissingWilayahParentIdError extends AppError {
+    constructor(level: string) {
+        super(
+            "MISSING_WILAYAH_PARENT_ID",
+            `parent_id is required for ${level} level`,
+            400,
+        );
+    }
+}
+
+export class InvalidWilayahLevelError extends AppError {
+    constructor(level: string) {
+        super(
+            "INVALID_WILAYAH_LEVEL",
+            `Invalid level: ${level}`,
+            400,
         );
     }
 }

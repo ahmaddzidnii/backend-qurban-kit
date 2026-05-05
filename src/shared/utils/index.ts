@@ -1,4 +1,3 @@
-export { asyncHandler } from "./asyncHandler.js";
 export { formatUptime } from "./formatUptime.js";
 
 // Utility functions can be added here

@@ -1,133 +1,120 @@
+import { Role, type Prisma as PrismaNamespace } from "@prisma/client";
+
 import type { RegisterRequestDTO, LoginRequestDTO, AuthResponseDTO } from "./dtos.js";
-import type { Prisma as PrismaNamespace } from "@prisma/client";
 import {
     UserAlreadyExistsError,
     InvalidCredentialsError,
 } from "../../shared/errors/index.js";
-import { UserRepository, TokenRepository } from "../../repositories/index.js";
-import { PasswordService, TokenService } from "../../shared/services/index.js";
+import { prisma } from "../../config/database.js";
+import { hashPassword, comparePassword, generateAccessToken, hashToken } from "../../shared/services/index.js";
 
 type User = PrismaNamespace.UserGetPayload<{}>;
 
 /**
- * Auth Service - main service consolidating all auth operations
- * Handles business logic for authentication
+ * Register a new user
  */
-export class AuthService {
-    private passwordService: PasswordService;
-    private tokenService: TokenService;
-    private userRepository: UserRepository;
-    private tokenRepository: TokenRepository;
-
-    constructor() {
-        this.passwordService = new PasswordService();
-        this.tokenService = new TokenService();
-        this.userRepository = new UserRepository();
-        this.tokenRepository = new TokenRepository();
+export async function registerUser(data: RegisterRequestDTO) {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+        where: { email: data.email },
+    });
+    if (existingUser) {
+        throw new UserAlreadyExistsError(data.email);
     }
 
-    /**
-     * Register a new user
-     */
-    async register(data: RegisterRequestDTO) {
-        // Check if user already exists
-        const existingUser = await this.userRepository.findByEmail(data.email);
-        if (existingUser) {
-            throw new UserAlreadyExistsError(data.email);
-        }
-
-        const hashedPassword = await this.passwordService.hash(data.password);
-        const user = await this.userRepository.create({
+    const hashedPassword = await hashPassword(data.password);
+    const user = await prisma.user.create({
+        data: {
             email: data.email,
             password: hashedPassword,
             fullName: data.name || "",
-        });
+            role: Role.ADMIN_MASJID,
+        },
+    });
 
-        return {
-            ...user,
-            password: undefined, // Don't return password hash
-        };
+    const { password, ...safeUser } = user;
+
+    return safeUser;
+}
+
+/**
+ * Login user and generate access token
+ */
+export async function loginUser(data: LoginRequestDTO): Promise<AuthResponseDTO> {
+    // Find user
+    const user = await prisma.user.findUnique({
+        where: { email: data.email },
+    });
+    if (!user) {
+        throw new InvalidCredentialsError();
     }
 
-    /**
-     * Login user and generate access token
-     */
-    async login(data: LoginRequestDTO): Promise<AuthResponseDTO> {
-        // Find user
-        const user = await this.userRepository.findByEmail(data.email);
-        if (!user) {
-            throw new InvalidCredentialsError();
-        }
+    // Verify password
+    const isPasswordValid = await comparePassword(
+        data.password,
+        user.password
+    );
+    if (!isPasswordValid) {
+        throw new InvalidCredentialsError();
+    }
 
-        // Verify password
-        const isPasswordValid = await this.passwordService.compare(
-            data.password,
-            user.password
-        );
-        if (!isPasswordValid) {
-            throw new InvalidCredentialsError();
-        }
+    // Generate access token
+    const accessToken = generateAccessToken();
 
-        // Generate access token
-        const accessToken = this.tokenService.generateAccessToken();
+    // Hash token before storing
+    const hashedTokenValue = hashToken(accessToken);
 
-        // Hash token before storing
-        const hashedToken = this.tokenService.hashToken(accessToken);
-
-        // Store access token in database by default with 15 minutes expiry
-        const sessionLifetimeMinutes = parseInt(process.env.SESSION_LIFETIME || "15", 10);
-        const accessTokenExpiresAt = new Date(Date.now() + sessionLifetimeMinutes * 60 * 1000);
-        await this.tokenRepository.create({
-            token: hashedToken,
+    // Store access token in database by default with 15 minutes expiry
+    const sessionLifetimeMinutes = parseInt(process.env.SESSION_LIFETIME || "15", 10);
+    const accessTokenExpiresAt = new Date(Date.now() + sessionLifetimeMinutes * 60 * 1000);
+    await prisma.userToken.create({
+        data: {
+            token: hashedTokenValue,
             userId: user.id,
             expiresAt: accessTokenExpiresAt,
-        } as any);
+        },
+    });
 
-        return {
-            accessToken,
-        };
+    return {
+        accessToken,
+    };
+}
+
+/**
+ * Logout user
+ */
+export async function logoutUser(token?: string): Promise<void> {
+    if (!token) {
+        throw new InvalidCredentialsError();
     }
 
-    async logout(token?: string): Promise<void> {
+    // Hash token before querying
+    const hashedTokenValue = hashToken(token);
+    await prisma.userToken.delete({
+        where: { token: hashedTokenValue },
+    });
+}
 
-        if (!token) {
-            throw new InvalidCredentialsError();
-        }
-
-        // Hash token before querying
-        const hashedToken = this.tokenService.hashToken(token);
-        await this.tokenRepository.deleteByHashedToken(hashedToken);
+/**
+ * Get user profile
+ */
+export async function getUserProfile(id?: string) {
+    if (!id) {
+        throw new InvalidCredentialsError();
     }
 
-    /**
-     * Get user profile
-     */
-    async getProfile(id?: string) {
+    const user = await prisma.user.findUnique({
+        where: { id },
+    });
 
-        if (!id) {
-            throw new InvalidCredentialsError();
-        }
-
-        const user = await this.userRepository.findById(id);
-
-        if (!user) {
-            throw new InvalidCredentialsError();
-        }
-
-        return {
-            id: user.id,
-            name: user.fullName,
-            email: user.email,
-            role: user.role,
-        }
+    if (!user) {
+        throw new InvalidCredentialsError();
     }
 
-    // Expose repositories and services for middleware and other use cases
-    getTokenService(): TokenService {
-        return this.tokenService;
-    }
-
-    getTokenRepository(): TokenRepository {
-        return this.tokenRepository;
+    return {
+        id: user.id,
+        name: user.fullName,
+        email: user.email,
+        role: user.role,
     }
 }

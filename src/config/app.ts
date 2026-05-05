@@ -6,12 +6,9 @@ import type { Express } from "express";
 import { Router as ExpressRouter } from "express";
 
 import { formatUptime } from "../shared/utils/index.js";
-import { AuthService } from "../features/auth/services.js";
 import { createAuthRoutes } from "../features/auth/routes.js";
-import { AuthMiddleware } from "../shared/middleware/index.js";
-import { AuthController } from "../features/auth/controllers.js";
 import { createWilayahRoutes } from "../features/wilayah/routes.js";
-import { ErrorHandlingMiddleware } from "../shared/middleware/index.js";
+import { notFound, errorHandler } from "../shared/middleware/index.js";
 
 export function createApp(): Express {
   const app = express();
@@ -20,16 +17,6 @@ export function createApp(): Express {
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
-
-  const authService = new AuthService();
-  const authController = new AuthController(authService);
-
-  const authMiddleware = new AuthMiddleware(
-    authService.getTokenService(),
-    authService.getTokenRepository()
-  );
-
-  app.use((req, res, next) => authMiddleware.authenticate(req, res, next));
 
   const apiRouter = ExpressRouter();
 
@@ -42,7 +29,7 @@ export function createApp(): Express {
     });
   });
 
-  const authRoutes = createAuthRoutes(authController, authMiddleware);
+  const authRoutes = createAuthRoutes();
   const wilayahRoutes = createWilayahRoutes();
 
   apiRouter.use("/auth", authRoutes);
@@ -50,8 +37,8 @@ export function createApp(): Express {
 
   app.use("/", apiRouter);
 
-  app.use(ErrorHandlingMiddleware.notFound);
-  app.use(ErrorHandlingMiddleware.errorHandler);
+  app.use(notFound);
+  app.use(errorHandler);
 
   return app;
 }

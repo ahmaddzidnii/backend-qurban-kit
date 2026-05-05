@@ -1,5 +1,5 @@
 /**
  * Export all shared services
  */
-export { PasswordService } from "./password.service.js";
-export { TokenService } from "./token.service.js";
+export { hashPassword, comparePassword } from "./password.service.js";
+export { generateAccessToken, verifyAccessToken, hashToken } from "./token.service.js";
