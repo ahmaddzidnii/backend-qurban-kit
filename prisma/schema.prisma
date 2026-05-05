@@ -22,6 +22,9 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  idMasjid String? @unique @map("id_masjid")
+  masjid Masjid? @relation("UserToMasjid", fields: [idMasjid], references: [id])
+
   tokens UserToken[]
 
   @@map("users")
@@ -39,6 +42,83 @@ model UserToken {
   user User @relation(fields: [userId], references: [id])
 
   @@map("user_tokens")
+  @@index([userId])
 }
 
+enum MasjidStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
 
+model Masjid {
+  id String @id @default(cuid())
+  nama String
+  nomorSK String @map("nomor_sk") @unique
+  fotoMasjidUrl String? @map("foto_masjid_url")
+  fotoDokumenSKUrl String? @map("foto_sk_url")
+  alamat String
+  status MasjidStatus @default(PENDING)
+  catatanAdmin String? @map("catatan_admin")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  idDesa String @map("id_desa")
+  desa Desa @relation(fields: [idDesa], references: [id])
+
+  user User? @relation("UserToMasjid")
+
+  @@map("masjid")
+  @@index([idDesa, status])
+}
+
+model Provinsi {
+  id String @id @default(cuid())
+  kode  String @unique
+  nama String
+
+  kabupaten Kabupaten[]
+
+  @@map("provinsi")
+}
+
+model Kabupaten {
+  id String @id @default(cuid())
+  kode  String @unique
+  nama String
+  idProvinsi String @map("id_provinsi")
+
+  kecamatan Kecamatan[]
+  provinsi Provinsi @relation(fields: [idProvinsi], references: [id])
+
+  @@map("kabupaten")
+  @@index([idProvinsi])
+}
+
+model Kecamatan {
+  id String @id @default(cuid())
+  kode  String @unique
+  nama String
+  idKabupaten String @map("id_kabupaten")
+
+  desa Desa[]
+  kabupaten Kabupaten @relation(fields: [idKabupaten], references: [id])
+
+  @@map("kecamatan")
+  @@index([idKabupaten])
+}
+
+model Desa {
+  id String @id @default(cuid())
+  kode  String @unique
+  nama String
+  kodePos String? @map("kode_pos")
+  idKecamatan String @map("id_kecamatan")
+
+  masjid Masjid[]
+  kecamatan Kecamatan @relation(fields: [idKecamatan], references: [id])
+
+  @@map("desa")
+  @@index([idKecamatan])
+}

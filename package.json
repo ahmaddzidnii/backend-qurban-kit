@@ -16,7 +16,8 @@
     "build": "tsc",
     "lint": "eslint --fix src test",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prisma:seed": "tsx prisma/seed/WilayahIndonesia.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^6.16.0",
@@ -24,6 +25,7 @@
     "@prisma/client": "^6.16.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
     "dotenv": "^17.4.2",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
