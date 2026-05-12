@@ -5,10 +5,10 @@ import express from "express";
 import type { Express } from "express";
 import { Router as ExpressRouter } from "express";
 
-import { formatUptime } from "../shared/utils/index.js";
-import { createAuthRoutes } from "../features/auth/routes.js";
-import { createWilayahRoutes } from "../features/wilayah/routes.js";
-import { notFound, errorHandler } from "../shared/middleware/index.js";
+import { formatUptime } from "./shared/utils/index.js";
+import { createAuthRoutes } from "./features/auth/auth.route.js";
+import { createWilayahRoutes } from "./features/wilayah/routes.js";
+import { notFound, errorHandler } from "./shared/middleware/index.js";
 
 export function createApp(): Express {
   const app = express();

@@ -1,23 +1,22 @@
-import { Role, type Prisma as PrismaNamespace } from "@prisma/client";
+import type { Response } from "express";
+import type { AuthenticatedRequest } from "../../shared/middleware/index.js";
+import { loginSchema, registerSchema } from "./auth.schema.js";
+import { prisma } from "../../database.js";
+import { comparePassword, hashPassword } from "../../shared/services/password.service.js";
+import { Role } from "@prisma/client";
+import { generateAccessToken, hashToken } from "../../shared/services/token.service.js";
+import { InvalidCredentialsError, UserAlreadyExistsError } from "../../shared/errors/auth.error.js";
+import { env } from "../../env.js";
 
-import type { RegisterRequestDTO, LoginRequestDTO, AuthResponseDTO } from "./dtos.js";
-import {
-    UserAlreadyExistsError,
-    InvalidCredentialsError,
-} from "../../shared/errors/index.js";
-import { prisma } from "../../config/database.js";
-import { hashPassword, comparePassword, generateAccessToken, hashToken } from "../../shared/services/index.js";
 
-type User = PrismaNamespace.UserGetPayload<{}>;
 
-/**
- * Register a new user
- */
-export async function registerUser(data: RegisterRequestDTO) {
-    // Check if user already exists
+export async function register(req: AuthenticatedRequest, res: Response) {
+    const data = registerSchema.parse(req.body);
+
     const existingUser = await prisma.user.findUnique({
         where: { email: data.email },
     });
+
     if (existingUser) {
         throw new UserAlreadyExistsError(data.email);
     }
@@ -33,15 +32,12 @@ export async function registerUser(data: RegisterRequestDTO) {
     });
 
     const { password, ...safeUser } = user;
-
-    return safeUser;
+    res.status(201).json(safeUser);
 }
 
-/**
- * Login user and generate access token
- */
-export async function loginUser(data: LoginRequestDTO): Promise<AuthResponseDTO> {
-    // Find user
+export async function login(req: AuthenticatedRequest, res: Response) {
+    const data = loginSchema.parse(req.body);
+
     const user = await prisma.user.findUnique({
         where: { email: data.email },
     });
@@ -49,7 +45,6 @@ export async function loginUser(data: LoginRequestDTO): Promise<AuthResponseDTO>
         throw new InvalidCredentialsError();
     }
 
-    // Verify password
     const isPasswordValid = await comparePassword(
         data.password,
         user.password
@@ -58,15 +53,12 @@ export async function loginUser(data: LoginRequestDTO): Promise<AuthResponseDTO>
         throw new InvalidCredentialsError();
     }
 
-    // Generate access token
     const accessToken = generateAccessToken();
-
-    // Hash token before storing
     const hashedTokenValue = hashToken(accessToken);
 
-    // Store access token in database by default with 15 minutes expiry
-    const sessionLifetimeMinutes = parseInt(process.env.SESSION_LIFETIME || "15", 10);
+    const sessionLifetimeMinutes = env.SESSION_LIFETIME;
     const accessTokenExpiresAt = new Date(Date.now() + sessionLifetimeMinutes * 60 * 1000);
+
     await prisma.userToken.create({
         data: {
             token: hashedTokenValue,
@@ -74,47 +66,41 @@ export async function loginUser(data: LoginRequestDTO): Promise<AuthResponseDTO>
             expiresAt: accessTokenExpiresAt,
         },
     });
-
-    return {
-        accessToken,
-    };
+    res.status(200).json({ accessToken });
 }
 
-/**
- * Logout user
- */
-export async function logoutUser(token?: string): Promise<void> {
-    if (!token) {
-        throw new InvalidCredentialsError();
-    }
-
-    // Hash token before querying
-    const hashedTokenValue = hashToken(token);
-    await prisma.userToken.delete({
-        where: { token: hashedTokenValue },
-    });
-}
-
-/**
- * Get user profile
- */
-export async function getUserProfile(id?: string) {
-    if (!id) {
+export async function profile(req: AuthenticatedRequest, res: Response) {
+    if (!req.userId) {
         throw new InvalidCredentialsError();
     }
 
     const user = await prisma.user.findUnique({
-        where: { id },
+        where: { id: req.userId },
     });
 
     if (!user) {
         throw new InvalidCredentialsError();
     }
 
-    return {
+    res.status(200).json({
         id: user.id,
         name: user.fullName,
         email: user.email,
         role: user.role,
+    });
+}
+
+export async function logout(req: AuthenticatedRequest, res: Response) {
+    if (!req.token) {
+        throw new InvalidCredentialsError();
     }
+
+    // Hash token before querying
+    const hashedTokenValue = hashToken(req.token);
+
+    await prisma.userToken.delete({
+        where: { token: hashedTokenValue },
+    });
+
+    res.status(200).json({ message: "Logged out successfully" });
 }

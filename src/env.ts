@@ -12,6 +12,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   ENV_SOURCE: z.string().default("process env"),
+  SESSION_LIFETIME: z.coerce.number().default(15), // in minutes
 });
 
 try {

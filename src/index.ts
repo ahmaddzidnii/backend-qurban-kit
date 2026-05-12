@@ -1,4 +1,4 @@
-import { createApp } from "./config/app.js";
+import { createApp } from "./app.js";
 import { env } from "./env.js";
 
 export const app = createApp();

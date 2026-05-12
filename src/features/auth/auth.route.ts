@@ -1,6 +1,6 @@
 import type { Router, Request, Response, NextFunction } from "express";
 import { Router as ExpressRouter } from "express";
-import { register, login, logout, profile } from "./controllers.js";
+import { register, login, logout, profile } from "./auth.controller.js";
 import { authenticate, requireAuth, type AuthenticatedRequest } from "../../shared/middleware/index.js";
 
 export function createAuthRoutes(): Router {

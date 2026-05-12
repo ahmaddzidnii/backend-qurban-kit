@@ -1,4 +1,4 @@
-import { prisma } from "../../config/database.js";
+import { prisma } from "../../database.js";
 import type { GetWilayahQueryDTO } from "./dtos.js";
 import { InvalidWilayahLevelError, MissingWilayahParentIdError } from "../../shared/errors/index.js";
 
