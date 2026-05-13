@@ -1,6 +1,45 @@
-import { prisma } from "../../database.js";
-import type { GetWilayahQueryDTO } from "./dtos.js";
-import { InvalidWilayahLevelError, MissingWilayahParentIdError } from "../../shared/errors/index.js";
+import type { Response } from "express";
+
+import type { AuthenticatedRequest } from "@shared/middleware/index.js";
+import { getWilayahQuerySchema } from "./wilayah.schema";
+import { prisma } from "@/database";
+import { InvalidWilayahLevelError, MissingWilayahParentIdError } from "@/shared/errors";
+
+export async function getWilayahHandler(req: AuthenticatedRequest, res: Response) {
+    const query = getWilayahQuerySchema.parse(req.query);
+    const { level, parent_id, search } = query;
+
+    let result;
+
+    switch (level) {
+        case "provinsi":
+            result = await getProvinsi(search);
+            break;
+        case "kabupaten":
+            if (!parent_id) {
+                throw new MissingWilayahParentIdError("kabupaten");
+            }
+            result = await getKabupaten(parent_id, search);
+            break;
+        case "kecamatan":
+            if (!parent_id) {
+                throw new MissingWilayahParentIdError("kecamatan");
+            }
+            result = await getKecamatan(parent_id, search);
+            break;
+        case "desa":
+            if (!parent_id) {
+                throw new MissingWilayahParentIdError("desa");
+            }
+            result = await getDesa(parent_id, search);
+            break;
+        default:
+            throw new InvalidWilayahLevelError(level);
+    }
+
+    return res.json(result);
+}
+
 
 async function getProvinsi(search?: string) {
     const where = search
@@ -108,32 +147,4 @@ async function getDesa(
     });
 
     return data;
-}
-
-export async function getWilayah(
-    query: GetWilayahQueryDTO
-) {
-    const { level, parent_id, search } = query;
-
-    switch (level) {
-        case "provinsi":
-            return getProvinsi(search);
-        case "kabupaten":
-            if (!parent_id) {
-                throw new MissingWilayahParentIdError("kabupaten");
-            }
-            return getKabupaten(parent_id, search);
-        case "kecamatan":
-            if (!parent_id) {
-                throw new MissingWilayahParentIdError("kecamatan");
-            }
-            return getKecamatan(parent_id, search);
-        case "desa":
-            if (!parent_id) {
-                throw new MissingWilayahParentIdError("desa");
-            }
-            return getDesa(parent_id, search);
-        default:
-            throw new InvalidWilayahLevelError(level);
-    }
 }

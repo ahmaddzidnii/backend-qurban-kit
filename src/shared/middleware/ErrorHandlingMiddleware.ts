@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { env } from "../../env.js";
-import { NotFoundError, type AppError } from "../errors/index.js";
+import { env } from "@/env.js";
+import { NotFoundError, type AppError } from "@shared/errors/index.js";
 
 export type ErrorResponse = {
     message: string;

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -12,7 +13,13 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"]
+    }
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "netlify/**/*.ts", "prisma/**/*.ts"]
 }

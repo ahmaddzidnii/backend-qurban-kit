@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
-import { prisma } from "../../database.js";
-import { InvalidTokenError } from "../errors/index.js";
-import { verifyAccessToken, hashToken } from "../services/index.js";
+import { prisma } from "@/database.js";
+import { InvalidTokenError } from "@shared/errors/index.js";
+import { verifyAccessToken, hashToken } from "@shared/services/index.js";
 
 export interface AuthenticatedRequest extends Request {
     userId?: string;

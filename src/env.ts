@@ -1,5 +1,5 @@
+import z from "zod";
 import { config as loadEnv } from "dotenv";
-import { z } from "zod/v4";
 
 const dotenvResult = loadEnv();
 // eslint-disable-next-line node/no-process-env

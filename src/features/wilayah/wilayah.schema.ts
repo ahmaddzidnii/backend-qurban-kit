@@ -1,4 +1,4 @@
-import { z } from "zod";
+import z from "zod";
 
 export type WilayahLevel = "provinsi" | "kabupaten" | "kecamatan" | "desa";
 
@@ -19,5 +19,3 @@ export const getWilayahQuerySchema = z.object({
     parent_id: z.string().optional(),
     search: z.string().optional(),
 });
-
-export type GetWilayahQueryDTO = z.infer<typeof getWilayahQuerySchema>;

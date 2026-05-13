@@ -1,12 +1,12 @@
 import type { Response } from "express";
-import type { AuthenticatedRequest } from "../../shared/middleware/index.js";
-import { loginSchema, registerSchema } from "./auth.schema.js";
-import { prisma } from "../../database.js";
-import { comparePassword, hashPassword } from "../../shared/services/password.service.js";
+import type { AuthenticatedRequest } from "@shared/middleware/index.js";
+import { loginSchema, registerSchema } from "@features/auth/auth.schema.js";
+import { prisma } from "@/database.js";
+import { comparePassword, hashPassword } from "@shared/services/password.service.js";
 import { Role } from "@prisma/client";
-import { generateAccessToken, hashToken } from "../../shared/services/token.service.js";
-import { InvalidCredentialsError, UserAlreadyExistsError } from "../../shared/errors/auth.error.js";
-import { env } from "../../env.js";
+import { generateAccessToken, hashToken } from "@shared/services/token.service.js";
+import { InvalidCredentialsError, UserAlreadyExistsError } from "@shared/errors/auth.error.js";
+import { env } from "@/env.js";
 
 
 
