@@ -12,7 +12,12 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   ENV_SOURCE: z.string().default("process env"),
-  SESSION_LIFETIME: z.coerce.number().default(15), // in minutes
+  S3_ENDPOINT: z.string().min(1, "S3_ENDPOINT is required").optional(),
+  S3_REGION: z.string().default("us-east-1"),
+  S3_ACCESS_KEY_ID: z.string().min(1, "S3_ACCESS_KEY_ID is required").optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1, "S3_SECRET_ACCESS_KEY is required").optional(),
+  S3_BUCKET: z.string().min(1, "S3_BUCKET is required").optional(),
+  S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).default("true").transform(val => val === "true"),
 });
 
 try {

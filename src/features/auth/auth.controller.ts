@@ -1,11 +1,11 @@
-import type { Request, Response } from "express";
-import { loginSchema, registerSchema } from "@features/auth/auth.schema.js";
-import { prisma } from "@/database.js";
-import { comparePassword, hashPassword } from "@shared/services/password.service.js";
 import { Role } from "@prisma/client";
+import type { Request, Response } from "express";
+
+import { prisma } from "@/database.js";
+import { loginSchema, registerSchema } from "@features/auth/auth.schema.js";
 import { generateAccessToken, hashToken } from "@shared/services/token.service.js";
+import { comparePassword, hashPassword } from "@shared/services/password.service.js";
 import { InvalidCredentialsError, UserAlreadyExistsError } from "@shared/errors/auth.error.js";
-import { env } from "@/env.js";
 
 
 
@@ -55,7 +55,7 @@ export async function login(req: Request, res: Response) {
     const accessToken = generateAccessToken();
     const hashedTokenValue = hashToken(accessToken);
 
-    const sessionLifetimeMinutes = env.SESSION_LIFETIME;
+    const sessionLifetimeMinutes = parseInt(process.env.SESSION_LIFETIME || "15", 10);
     const accessTokenExpiresAt = new Date(Date.now() + sessionLifetimeMinutes * 60 * 1000);
 
     await prisma.userToken.create({
@@ -75,11 +75,25 @@ export async function profile(req: Request, res: Response) {
         throw new InvalidCredentialsError();
     }
 
+    const masjid = await prisma.masjid.findFirst({
+        where: {
+            user: {
+                id: authObject.user.id
+            }
+        },
+        select: {
+            id: true,
+            nama: true,
+            status: true,
+        }
+    })
+
     res.status(200).json({
         id: authObject.user.id,
         name: authObject.user.fullName,
         email: authObject.user.email,
         role: authObject.user.role,
+        masjid,
     });
 }
 

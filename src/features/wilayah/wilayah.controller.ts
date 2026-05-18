@@ -1,9 +1,9 @@
 import type { Response } from "express";
 
-import type { AuthenticatedRequest } from "@shared/middleware/index.js";
-import { getWilayahQuerySchema } from "./wilayah.schema";
-import { prisma } from "@/database";
-import { InvalidWilayahLevelError, MissingWilayahParentIdError } from "@/shared/errors";
+import type { AuthenticatedRequest } from "@shared/middleware/auth.middleware.js";
+import { getWilayahQuerySchema } from "./wilayah.schema.js";
+import { prisma } from "@/database.js";
+import { InvalidWilayahLevelError, MissingWilayahParentIdError } from "@shared/errors/wilayah.error.js";
 
 export async function getWilayahHandler(req: AuthenticatedRequest, res: Response) {
     const query = getWilayahQuerySchema.parse(req.query);
