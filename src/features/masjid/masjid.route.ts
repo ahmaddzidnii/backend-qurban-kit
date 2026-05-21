@@ -9,7 +9,6 @@ import {
     createMasjidRegistration,
     getAllMasjid,
     getMasjidRegistrations,
-    getStatusPermintaanMasjid,
     rejectMasjidRegistration,
 } from "./masjid.controller.js";
 
@@ -27,7 +26,6 @@ masjidRouter.post(
 );
 
 masjidRouter.get("/list-permintaan", requireAuth, superAdminOnly, getMasjidRegistrations);
-masjidRouter.get("/permintaan/status", requireAuth, adminMasjidOnly, getStatusPermintaanMasjid);
 masjidRouter.post("/permintaan/:id/approve", requireAuth, superAdminOnly, approveMasjidRegistration);
 masjidRouter.post("/permintaan/:id/reject", requireAuth, superAdminOnly, rejectMasjidRegistration);
 

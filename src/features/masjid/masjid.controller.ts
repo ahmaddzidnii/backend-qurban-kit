@@ -1,4 +1,4 @@
-import { uploadFile } from "@/s3";
+import { getFileUrl, uploadFile } from "@/s3";
 import type { Request } from "express";
 import type { NextFunction, Response } from "express";
 
@@ -120,8 +120,8 @@ export async function createMasjidRegistration(
 
         // Upload files
         await Promise.all([
-            uploadFile(fotoMasjidPath, fotoMasjidFile.buffer, fotoMasjidFile.mimetype),
-            uploadFile(fotoDokumenSKPath, fotoDokumenSKFile.buffer, fotoDokumenSKFile.mimetype),
+            uploadFile(fotoMasjidPath, fotoMasjidFile.buffer, fotoMasjidFile.mimetype, "public-read"),
+            uploadFile(fotoDokumenSKPath, fotoDokumenSKFile.buffer, fotoDokumenSKFile.mimetype, "public-read"),
         ]);
 
         // Create Masjid record in database
@@ -164,13 +164,24 @@ export async function getMasjidRegistrations(
 ) {
     const masjidRegistrations = await prisma.masjid.findMany({
         where: {
-            status: "PENDING",
+            status: {
+                in: ["PENDING", "REJECTED"],
+            }
         },
         select: {
             id: true,
             nama: true,
             nomorSK: true,
             alamat: true,
+            user: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                }
+            },
+            fotoDokumenSKUrl: true,
+            fotoMasjidUrl: true,
             desa: {
                 select: {
                     nama: true,
@@ -202,6 +213,8 @@ export async function getMasjidRegistrations(
         const kecamatan = desa?.kecamatan;
         const kabupaten = kecamatan?.kabupaten;
         const provinsi = kabupaten?.provinsi;
+        const pemohon = masjid.user;
+
 
         return {
             id: masjid.id,
@@ -209,6 +222,8 @@ export async function getMasjidRegistrations(
             nomorSK: masjid.nomorSK,
             alamat: masjid.alamat,
             status: masjid.status,
+            gambarMasjidUrl: getFileUrl(masjid.fotoMasjidUrl!),
+            dokumenSKUrl: getFileUrl(masjid.fotoDokumenSKUrl!),
             createdAt: masjid.createdAt,
             detailWilayah: {
                 kodePos: desa?.kodePos || null,
@@ -216,7 +231,12 @@ export async function getMasjidRegistrations(
                 kecamatan: kecamatan?.nama || null,
                 kabupaten: kabupaten?.nama || null,
                 provinsi: provinsi?.nama || null
-            }
+            },
+            pemohon: pemohon ? {
+                id: pemohon.id,
+                name: pemohon.fullName,
+                email: pemohon.email,
+            } : null
         };
     });
 
@@ -306,13 +326,24 @@ export const getAllMasjid = async (
 ) => {
     const masjids = await prisma.masjid.findMany({
         where: {
-            status: "APPROVED",
+            status: {
+                in: ["APPROVED", "SUSPENDED"],
+            }
         },
         select: {
             id: true,
             nama: true,
             nomorSK: true,
             alamat: true,
+            fotoDokumenSKUrl: true,
+            fotoMasjidUrl: true,
+            user: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                }
+            },
             desa: {
                 select: {
                     nama: true,
@@ -344,6 +375,7 @@ export const getAllMasjid = async (
         const kecamatan = desa?.kecamatan;
         const kabupaten = kecamatan?.kabupaten;
         const provinsi = kabupaten?.provinsi;
+        const admin = masjid.user;
 
         return {
             id: masjid.id,
@@ -351,6 +383,8 @@ export const getAllMasjid = async (
             nomorSK: masjid.nomorSK,
             alamat: masjid.alamat,
             status: masjid.status,
+            gambarMasjidUrl: getFileUrl(masjid.fotoMasjidUrl!),
+            dokumenSKUrl: getFileUrl(masjid.fotoDokumenSKUrl!),
             createdAt: masjid.createdAt,
             detailWilayah: {
                 kodePos: desa?.kodePos || null,
@@ -358,34 +392,15 @@ export const getAllMasjid = async (
                 kecamatan: kecamatan?.nama || null,
                 kabupaten: kabupaten?.nama || null,
                 provinsi: provinsi?.nama || null
-            }
+            },
+            admin: admin ? {
+                id: admin.id,
+                name: admin.fullName,
+                email: admin.email,
+            } : null
         };
     });
 
     res.status(200).json(formattedMasjids);
-}
-
-export const getStatusPermintaanMasjid = async (
-    req: Request,
-    res: Response,
-) => {
-    const userId = req.auth?.user.id;
-    const masjid = await prisma.masjid.findFirst({
-        where: {
-            user: {
-                id: userId,
-            },
-        },
-        select: {
-            status: true,
-        }
-    });
-
-    if (!masjid) {
-        throw new NotFoundError("Anda belum mengajukan pendaftaran masjid");
-    }
-    res.status(200).json({
-        status: masjid.status,
-    });
 }
 

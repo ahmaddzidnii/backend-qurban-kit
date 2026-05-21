@@ -5,13 +5,10 @@ import {
     DeleteObjectCommand,
     ListObjectsV2Command,
     HeadObjectCommand,
+    ObjectCannedACL,
 } from "@aws-sdk/client-s3";
 import { env } from "./env";
 
-/**
- * Initialize S3 compatible storage client
- * Supports MinIO, Wasabi, DigitalOcean Spaces, and other S3-compatible services
- */
 const s3Client = new S3Client({
     region: env.S3_REGION,
     endpoint: env.S3_ENDPOINT,
@@ -22,13 +19,11 @@ const s3Client = new S3Client({
     forcePathStyle: env.S3_FORCE_PATH_STYLE, // Important for S3 compatible services
 });
 
-/**
- * Upload file to S3 compatible storage
- */
 export async function uploadFile(
     key: string,
     body: Buffer | string,
     contentType: string = "application/octet-stream",
+    acl: ObjectCannedACL = "private",
 ): Promise<void> {
     try {
         const command = new PutObjectCommand({
@@ -36,6 +31,7 @@ export async function uploadFile(
             Key: key,
             Body: body,
             ContentType: contentType,
+            ACL: acl,
         });
 
         await s3Client.send(command);
@@ -46,9 +42,6 @@ export async function uploadFile(
     }
 }
 
-/**
- * Download file from S3 compatible storage
- */
 export async function downloadFile(key: string): Promise<Buffer> {
     try {
         const command = new GetObjectCommand({
@@ -74,9 +67,6 @@ export async function downloadFile(key: string): Promise<Buffer> {
     }
 }
 
-/**
- * Delete file from S3 compatible storage
- */
 export async function deleteFile(key: string): Promise<void> {
     try {
         const command = new DeleteObjectCommand({
@@ -92,9 +82,6 @@ export async function deleteFile(key: string): Promise<void> {
     }
 }
 
-/**
- * List objects in S3 compatible storage with optional prefix
- */
 export async function listFiles(
     prefix?: string,
     maxKeys: number = 1000,
@@ -122,9 +109,6 @@ export async function listFiles(
     }
 }
 
-/**
- * Check if file exists in S3 compatible storage
- */
 export async function fileExists(key: string): Promise<boolean> {
     try {
         const command = new HeadObjectCommand({
@@ -142,6 +126,20 @@ export async function fileExists(key: string): Promise<boolean> {
         console.error("S3 head object error:", error);
         throw new Error(`Failed to check file existence in S3: ${error}`);
     }
+}
+
+export function getFileUrl(key: string): string {
+    // Bersihkan slash di awal key kalau ada biar gak double slash
+    const cleanKey = key.startsWith("/") ? key.substring(1) : key;
+
+    if (env.S3_FORCE_PATH_STYLE) {
+        return `${env.S3_ENDPOINT}/${env.S3_BUCKET}/${cleanKey}`;
+    }
+
+    const endpoint = env.S3_ENDPOINT!.replace(/^https?:\/\//, "");
+    const protocol = env.S3_ENDPOINT!.startsWith("https") ? "https" : "http";
+
+    return `${protocol}://${env.S3_BUCKET}.${endpoint}/${cleanKey}`;
 }
 
 export { s3Client };
